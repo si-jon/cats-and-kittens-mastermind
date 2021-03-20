@@ -45,16 +45,7 @@ function runParser(input) {
   } else {
     appendElement(resultsDiv, "P", "No results found!");
   }
-  
-/*
-  if (parseResults) { 
-    var resultList = appendElement(resultsDiv, "OL");
-    for (var i in parseResults) 
-      appendElement(resultList, "LI", JSON.stringify(parseResults[i]));
-  } else {
-    appendElement(resultsDiv, "P", "No results found!");
-  }
-*/
+
   var statistics = parseChart.statistics()
   appendElement(resultsDiv, "P", "Chart size: " + statistics.nrEdges + " edges" +
 		" (" + statistics.nrPassiveEdges + " passive)");

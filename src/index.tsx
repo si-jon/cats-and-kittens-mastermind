@@ -4,7 +4,8 @@ import * as ReactDOM from "react-dom";
 import { Machine, assign, send, State } from "xstate";
 import { useMachine, asEffect } from "@xstate/react";
 import { inspect } from "@xstate/inspect";
-import { dmMachine } from "./dmColourChanger";
+import { dmMainMachine } from "./dmMain";
+import { dmRasaQueryMachine } from "./dmRasaQuery";
 
 
 inspect({
@@ -14,13 +15,26 @@ inspect({
 
 import { useSpeechSynthesis, useSpeechRecognition } from 'react-speech-kit';
 
+const initContext = {
+    recResult: "",
+    nluData: "",
+    ttsAgenda: "",
+    query: "",
+    digits: [],
+    digitsResponse: [],
+    guessHistory: [],
+}
 
 const machine = Machine<SDSContext, any, SDSEvent>({
     id: 'root',
     type: 'parallel',
+    context: initContext,
     states: {
         dm: {
-            ...dmMachine
+            ...dmMainMachine
+        },
+        dmRasaQuery: {
+            ...dmRasaQueryMachine,
         },
         asrtts: {
             initial: 'idle',
@@ -67,14 +81,12 @@ const machine = Machine<SDSContext, any, SDSEvent>({
     {
         actions: {
             recLogResult: (context: SDSContext) => {
-                /* context.recResult = event.recResult; */
                 console.log('<< ASR: ' + context.recResult);
             },
             test: () => {
                 console.log('test')
             },
             logIntent: (context: SDSContext) => {
-                /* context.nluData = event.data */
                 console.log('<< NLU intent: ' + context.nluData.intent.name)
             }
         },
@@ -101,6 +113,14 @@ const ReactiveButton = (props: Props): JSX.Element => {
                     Speaking...
                 </button>
             );
+        case props.state.matches({ dmRasaQuery: 'query' }):
+            console.log('Waiting for rasa result')
+            return (
+                <button type="button" className="glow-on-hover"
+                    style={{ animation: "glowing 60s linear" }} {...props}>
+                    Waiting...
+                </button>
+            );
         default:
             return (
                 <button type="button" className="glow-on-hover" {...props}>
@@ -108,6 +128,18 @@ const ReactiveButton = (props: Props): JSX.Element => {
                 </button >
             );
     }
+}
+
+const GuessList = (props: Props): JSX.Element => {
+    const history = props.state.context.guessHistory;
+    const ghli = history.map((guess, index) => {
+        return (
+            <li key={index}>{guess}</li>
+        );
+    });
+    return (
+        <ol className="guessList">{ghli}</ol>
+    );
 }
 
 function App() {
@@ -125,7 +157,7 @@ function App() {
         devTools: true,
         actions: {
             recStart: asEffect(() => {
-                console.log('Ready to receive a color command.');
+                console.log('Ready to receive speech input.');
                 listen({
                     interimResults: false,
                     continuous: true
@@ -135,10 +167,6 @@ function App() {
                 console.log('Recognition stopped.');
                 stop()
             }),
-            changeColour: asEffect((context) => {
-                console.log('Repainting...');
-                document.body.style.background = context.recResult;
-            }),
             ttsStart: asEffect((context, effect) => {
                 console.log('Speaking...');
                 speak({ text: context.ttsAgenda })
@@ -147,36 +175,24 @@ function App() {
                 console.log('TTS STOP...');
                 cancel()
             })
-            /* speak: asEffect((context) => {
-	     * console.log('Speaking...');
-             *     speak({text: context.ttsAgenda })
-             * } */
         }
     });
 
-
     return (
-        <div className="App">
-            <ReactiveButton state={current} onClick={() => send('CLICK')} />
+        <div className="background">
+            <div className="Game">
+                <h1>Cats &amp; Kittens!</h1>
+                <ReactiveButton state={current} onClick={() => send('CLICK')} />
+                <div id="lined">
+                    <div id="content">
+                        <GuessList state={current} />
+                    </div>
+                </div>
+            </div>
         </div>
     )
 };
 
-
-
-/* RASA API
- *  */
-const proxyurl = "https://cors-anywhere.herokuapp.com/";
-const rasaurl = 'https://rasa-nlu-api-00.herokuapp.com/model/parse'
-const nluRequest = (text: string) =>
-    fetch(new Request(proxyurl + rasaurl, {
-        method: 'POST',
-        headers: { 'Origin': 'http://maraev.me' }, // only required with proxy
-        body: `{"text": "${text}"}`
-    }))
-        .then(data => data.json());
-
-const rootElement = document.getElementById("root");
 ReactDOM.render(
     <App />,
-    rootElement);
+    document.getElementById("root"));

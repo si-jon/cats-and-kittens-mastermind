@@ -1,0 +1,11 @@
+/* CSV */
+1f2041,4b3f72,ffc857,119da4,19647e
+
+/* Array */
+["1f2041","4b3f72","ffc857","119da4","19647e"]
+
+/* Object */
+{"Space Cadet":"1f2041","Cyber Grape":"4b3f72","Maximum Yellow Red":"ffc857","Viridian Green":"119da4","Blue Sapphire":"19647e"}
+
+/* Extended Array */
+[{"name":"Space Cadet","hex":"1f2041","rgb":[31,32,65],"cmyk":[52,51,0,75],"hsb":[238,52,25],"hsl":[238,35,19],"lab":[14,10,-21]},{"name":"Cyber Grape","hex":"4b3f72","rgb":[75,63,114],"cmyk":[34,45,0,55],"hsb":[254,45,45],"hsl":[254,29,35],"lab":[30,18,-28]},{"name":"Maximum Yellow Red","hex":"ffc857","rgb":[255,200,87],"cmyk":[0,22,66,0],"hsb":[40,66,100],"hsl":[40,100,67],"lab":[84,8,62]},{"name":"Viridian Green","hex":"119da4","rgb":[17,157,164],"cmyk":[90,4,0,36],"hsb":[183,90,64],"hsl":[183,81,35],"lab":[59,-31,-13]},{"name":"Blue Sapphire","hex":"19647e","rgb":[25,100,126],"cmyk":[80,21,0,51],"hsb":[195,80,49],"hsl":[195,67,30],"lab":[39,-13,-21]}]

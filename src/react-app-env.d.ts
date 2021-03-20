@@ -7,7 +7,9 @@ interface SDSContext {
     nluData: any;
     ttsAgenda: string;
     query: string;
-    snippet: string
+    digits: Array<number>;
+    digitsResponse: Array<number>;
+    guessHistory: Array<string>;
 }
 
 type SDSEvent =
@@ -16,4 +18,7 @@ type SDSEvent =
     | { type: 'ASRRESULT', value: string }
     | { type: 'ENDSPEECH' }
     | { type: 'LISTEN' }
-    | { type: 'SPEAK', value: string };
+    | { type: 'SPEAK', value: string }
+    | { type: 'QUERY', value: string }
+    | { type: 'RESPONSE', value: string }
+    | { type: 'RESPONSE_ERROR', value: string };

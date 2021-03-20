@@ -1,50 +1,98 @@
-.App {
+.background {
+  height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #4b3f72;
+}
+
+.Game {
   font-family: sans-serif;
   text-align: center;
-    height: 100vh;
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    background: #000;
-  
+  height: 90vh;
+  width: 600px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  background: #ffc857;
+  border: solid;
 }
 
 .glow-on-hover {
-    width: 220px;
-    height: 50px;
-    cursor: pointer;
-    position: relative;
-    z-index: 0;
-    border-radius: 10px;
-    content: '';
-    background: linear-gradient(45deg,  #002bff, #7a00ff, #ff00c8, #ff0000, #ff7300, #ff00c8, #7a00ff, #002bff,);
-    top: -2px;
-    left:-2px;
-    background-size: 400%;
-    opacity: 1;
-    color: #fff;
-    font-size: 2rem;
-    border: none;
-    outline: none;
+  width: 220px;
+  height: 50px;
+  cursor: pointer;
+  position: relative;
+  z-index: 0;
+  border-radius: 10px;
+  content: "";
+  background: linear-gradient(45deg, #19647e, #119da4, #19647e);
+  top: -2px;
+  left: -2px;
+  background-size: 400%;
+  opacity: 1;
+  color: #fff;
+  font-size: 2rem;
+  border: none;
+  outline: none;
 }
 
+/* styling blue horizontal lines */
+#lined {
+  height: 620px;
+  width: 400px;
+  background-image: repeating-linear-gradient(#ffc857 0px, #ffc857 29px, #4b3f72 30px);
+}
+
+/* styling text content */
+#content {
+  padding-top: 11px;
+  padding-left: 10px;
+  padding-right: 16px;
+  line-height: 30px;
+  font-size: 21px;
+  letter-spacing: 1px;
+  word-spacing: 5px;
+}
+
+.guessList li {
+  text-align: left;
+  //list-style: outside;
+  //border-bottom: 1px solid #4b3f72;
+}
 
 @keyframes glowing {
-    0% { background-position: 0 0; }
-    50% { background-position: 400% 0; }
-    100% { background-position: 0 0; }
+  0% {
+    background-position: 0 0;
+  }
+  50% {
+    background-position: 400% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
 }
 
 @keyframes bordering {
-  0% { box-shadow: 0 0 -40px #c4a300; }
-  40% { box-shadow: 0 0 40px #c4a300; }
-  60% { box-shadow: 0 0 40px #c4a300; }
-  100% { box-shadow: 0 0 -40px #c4a300; }
+  0% {
+    box-shadow: 0 0 -40px #ffc857;
+  }
+  40% {
+    box-shadow: 0 0 40px #ffc857;
+  }
+  60% {
+    box-shadow: 0 0 40px #ffc857;
+  }
+  100% {
+    box-shadow: 0 0 -40px #ffc857;
+  }
 }
 
 [data-xstate] {
