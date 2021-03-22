@@ -101,7 +101,7 @@ export const dmMainMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
             initial: 'prompt',
             states: {
                 prompt: {
-                    entry: say("Are you sure you want to exit the game?"),
+                    entry: say("Are you sure you want to quit?"),
                     on: { ENDSPEECH: 'ask' },
                     exit: startRepromptTimer
                 },
@@ -111,7 +111,7 @@ export const dmMainMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                     exit: cancelRepromptTimer
                 },
                 reprompt: {
-                    ...reprompt("Do you want to exit the game?", '#quit.ask'),
+                    ...reprompt("Do you want to quit?", '#quit.ask'),
                     onDone: '#done'
                 },
                 nomatch: {
@@ -158,7 +158,7 @@ export const dmMainMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
             initial: 'prompt',
             states: {
                 prompt: {
-                    entry: say("These are your options!"),
+                    entry: say("These are your options. Play the game. Ask for the rules. Or exit the game."),
                     on: { ENDSPEECH: '#intro' },
                 },
             },
@@ -168,7 +168,7 @@ export const dmMainMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
             initial: 'prompt',
             states: {
                 prompt: {
-                    entry: say("I'll help you!"),
+                    entry: say("If you don't know what to do, you can ask for options."),
                     on: { ENDSPEECH: '#intro' },
                 },
             },

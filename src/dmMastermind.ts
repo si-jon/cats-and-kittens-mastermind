@@ -2,6 +2,11 @@ import { MachineConfig, send, Action, assign, actions } from "xstate";
 import { say, listen } from "./voice";
 import { reprompt, startRepromptTimer, cancelRepromptTimer, resetRepromptCount } from "./dmReprompt";
 import { digitGrammar, yes_no_grammar } from "./grammars/grammar"
+import { dmHowToPlayMachine } from "./dmHowToPlay";
+
+const sendQuery: Action<SDSContext, SDSEvent> = send((context: SDSContext) => ({
+    type: "QUERY", value: context.recResult
+}))
 
 function generateDigits(): Array<number> {
     let digits: Array<number> = [];
@@ -21,7 +26,6 @@ function splitDigitString(inputStr: string): Array<string> {
     });
     const joinStr = preSplit.join('');
     const pruneStr = joinStr.replace(/[^0-9]/g, '');
-    console.log(pruneStr);
     const splitStr = Array.from(pruneStr);
     return splitStr
 }
@@ -72,7 +76,6 @@ function addToHistory(context: SDSContext, guess: string, catCount: number, kitt
     });
 }
 function addCatsAndKittensHistory(context: SDSContext) {
-    console.log("addCatsAndKittensHistory")
     let cats = 0;
     let kittens = 0;
     let soughtDigits = [...context.digits]
@@ -102,7 +105,6 @@ function addCatsAndKittensHistory(context: SDSContext) {
 
 function getCatsAndKittensMessage(context: SDSContext): string {
     addCatsAndKittensHistory(context)
-    console.log("getCatsAndKittensMessage")
     const idx = context.guessHistory.length - 1;
     let cats = 0;
     let kittens = 0;
@@ -110,7 +112,6 @@ function getCatsAndKittensMessage(context: SDSContext): string {
         cats = context.guessHistory[idx].catCount;
         kittens = context.guessHistory[idx].kittenCount;
     }
-    console.log(`${context.guessHistory.length}`)
     const catStr = (cats == 1) ? "cat" : "cats";
     const kittenStr = (kittens == 1) ? "kitten" : "kittens";
     return `${cats} ${catStr}, ${kittens} ${kittenStr}`;
@@ -208,11 +209,11 @@ export const dmMastermindMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                         TIMER: '.reprompt.repromptCounter',
                         RECOGNISED: [{
                             cond: (context) => context.recResult === 'help',
-                            target: '#common.help'
+                            target: '#helpgame'
                         },
                         {
                             cond: (context) => context.recResult === 'quit',
-                            target: '#common.quit'
+                            target: '#quitgame'
                         },
                         {
                             cond: (context) => allCorrect(context.digits, context.recResult),
@@ -251,7 +252,7 @@ export const dmMastermindMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                         ENDSPEECH: '#playprompt'
                     }
                 },
-                hist: {
+                gamehist: {
                     type: 'history',
                     history: 'shallow'
                 },
@@ -300,24 +301,70 @@ export const dmMastermindMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
             id: 'common',
             states: {
                 help: {
-                    entry: say("This is a help message"),
-                    on: {
-                        ENDSPEECH: [
-                            {
-                                target: '#catsnkittens.hist',
-                                actions: (context: SDSContext) => {
-                                    console.log('You cheat! ' + context.digits);
-                                }
-                            }
-                        ]
-                    },
-                },
-                quit: {
-                    id: 'quit',
+                    id: 'helpgame',
                     initial: 'prompt',
                     states: {
                         prompt: {
-                            entry: say("Are you sure you want to exit the game?"),
+                            entry: say("Do you want to know the rules of the game, quit the game, or continue playing?"),
+                            on: { ENDSPEECH: 'ask' },
+                            exit: startRepromptTimer
+                        },
+                        ask: {
+                            entry: listen(),
+                            exit: cancelRepromptTimer
+                        },
+                        howToPlayInGame: {
+                            ...dmHowToPlayMachine,
+                            onDone: {
+                                target: '#catsnkittens.gamehist'
+                            }
+                        },
+                        reprompt: {
+                            ...reprompt("Do you want to know the rules of the game, quit the game, or continue playing?", '#helpgame.ask'),
+                            onDone: '#done'
+                        },
+                        nomatch: {
+                            entry: say("Sorry, I don't know how to do this."),
+                            on: { ENDSPEECH: 'prompt' }
+                        },
+                        pending: {
+                            id: 'pending',
+                            on: {
+                                RESPONSE: [
+                                    {
+                                        cond: (context, event) => event.value === "continue",
+                                        target: '#catsnkittens.gamehist',
+                                    },
+                                    {
+                                        cond: (context, event) => event.value === "quit",
+                                        target: '#quitgame'
+                                    },
+                                    {
+                                        cond: (context, event) => event.value === "how_to_play",
+                                        target: 'howToPlayInGame'
+                                    },
+                                    { target: 'nomatch' }
+                                ],
+                                RESPONSE_ERROR: {
+                                    target: '#error',
+                                }
+                            }
+                        },
+                    },
+                    on: {
+                        TIMER: '.reprompt.repromptCounter',
+                        RECOGNISED: {
+                            actions: sendQuery,
+                            target: '.pending',
+                        }
+                    },
+                },
+                quitgame: {
+                    id: 'quitgame',
+                    initial: 'prompt',
+                    states: {
+                        prompt: {
+                            entry: say("Are you sure you want to quit?"),
                             on: {
                                 ENDSPEECH: 'ask'
                             },
@@ -328,7 +375,7 @@ export const dmMastermindMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                             exit: cancelRepromptTimer
                         },
                         reprompt: {
-                            ...reprompt("Do you want to exit the game?", '#quit.ask'),
+                            ...reprompt("Do you want to exit the game?", '#quitgame.ask'),
                             onDone: '#done'
                         },
                     },
@@ -340,7 +387,7 @@ export const dmMastermindMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                         },
                         {
                             cond: (context) => yes_no_grammar[context.recResult] === false,
-                            target: '#catsnkittens.hist',
+                            target: '#catsnkittens.gamehist',
                         },
                         {
                             target: '.prompt'
