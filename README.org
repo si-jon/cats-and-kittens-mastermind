@@ -1,4 +1,4 @@
-* Colour changer (React + xstate + Webspeech API)
+* Cats & Kittens
 To run:
 #+begin_src sh
   npm install
