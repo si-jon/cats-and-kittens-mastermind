@@ -2,6 +2,12 @@
 
 declare module 'react-speech-kit';
 
+interface GuessData {
+    guess: string;
+    catCount: number;
+    kittenCount: number;
+}
+
 interface SDSContext {
     recResult: string;
     nluData: any;
@@ -9,7 +15,8 @@ interface SDSContext {
     query: string;
     digits: Array<number>;
     digitsResponse: Array<number>;
-    guessHistory: Array<string>;
+    guessHistory: Array<GuessData>;
+    repromptCount: integer;
 }
 
 type SDSEvent =
@@ -18,7 +25,9 @@ type SDSEvent =
     | { type: 'ASRRESULT', value: string }
     | { type: 'ENDSPEECH' }
     | { type: 'LISTEN' }
+    | { type: 'STOP_LISTEN' }
     | { type: 'SPEAK', value: string }
     | { type: 'QUERY', value: string }
     | { type: 'RESPONSE', value: string }
-    | { type: 'RESPONSE_ERROR', value: string };
+    | { type: 'RESPONSE_ERROR', value: string }
+    | { type: 'TIMER' };

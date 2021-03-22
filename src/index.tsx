@@ -23,6 +23,7 @@ const initContext = {
     digits: [],
     digitsResponse: [],
     guessHistory: [],
+    repromptCount: 0,
 }
 
 const machine = Machine<SDSContext, any, SDSEvent>({
@@ -58,7 +59,8 @@ const machine = Machine<SDSContext, any, SDSEvent>({
                                 assign((_context, event) => { return { recResult: event.value } })],
                             target: '.match'
                         },
-                        RECOGNISED: 'idle'
+                        RECOGNISED: 'idle',
+                        STOP_LISTEN: 'idle'
                     },
                     states: {
                         progress: {
@@ -132,13 +134,33 @@ const ReactiveButton = (props: Props): JSX.Element => {
 
 const GuessList = (props: Props): JSX.Element => {
     const history = props.state.context.guessHistory;
-    const ghli = history.map((guess, index) => {
+    const ghli = history.map((guessData, index) => {
+        const guess = guessData.guess;
+        const catCount = guessData.catCount;
+        const kittenCount = guessData.kittenCount;
         return (
-            <li key={index}>{guess}</li>
+            <li key={index}>
+                <div className="guess">{guess}</div><div className="hint">&#128049;: {catCount} &#128008;: {kittenCount}</div>
+            </li>
         );
     });
     return (
         <ol className="guessList">{ghli}</ol>
+    );
+}
+
+const WinMessage = (props: Props): JSX.Element => {
+    const history = props.state.context.guessHistory;
+    const idx = history.length - 1;
+    if (idx >= 0 && history[idx].catCount === 4) {
+        return (
+            <div className="winMessage">&#128568; &#128568; &#128568; &#128568;
+                Purrrrfect!
+            </div>
+        );
+    }
+    return (
+        <div></div>
     );
 }
 
@@ -181,11 +203,12 @@ function App() {
     return (
         <div className="background">
             <div className="Game">
-                <h1>Cats &amp; Kittens!</h1>
+                <h1>&#128049; Cats &amp; Kittens! &#128008;</h1>
                 <ReactiveButton state={current} onClick={() => send('CLICK')} />
                 <div id="lined">
                     <div id="content">
                         <GuessList state={current} />
+                        <WinMessage state={current} />
                     </div>
                 </div>
             </div>

@@ -14,7 +14,7 @@
   font-family: sans-serif;
   text-align: center;
   height: 90vh;
-  width: 600px;
+  width: 450px;
   margin: 0;
   padding: 0;
   display: flex;
@@ -47,7 +47,7 @@
 /* styling blue horizontal lines */
 #lined {
   height: 620px;
-  width: 400px;
+  width: 350px;
   background-image: repeating-linear-gradient(#ffc857 0px, #ffc857 29px, #4b3f72 30px);
 }
 
@@ -62,10 +62,18 @@
   word-spacing: 5px;
 }
 
-.guessList li {
-  text-align: left;
-  //list-style: outside;
-  //border-bottom: 1px solid #4b3f72;
+.guess {
+  float: left;
+}
+
+.hint {
+  float: right;
+}
+
+.winMessage {
+  padding-top: 7px;
+  font-size: 28px;
+  float: center;
 }
 
 @keyframes glowing {

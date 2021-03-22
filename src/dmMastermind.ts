@@ -1,13 +1,7 @@
 import { MachineConfig, send, Action, assign, actions } from "xstate";
-
-
-function say(text: string): Action<SDSContext, SDSEvent> {
-    return send((_context: SDSContext) => ({ type: "SPEAK", value: text }))
-}
-
-function listen(): Action<SDSContext, SDSEvent> {
-    return send('LISTEN')
-}
+import { say, listen } from "./voice";
+import { reprompt, startRepromptTimer, cancelRepromptTimer, resetRepromptCount } from "./dmReprompt";
+import { digitGrammar, yes_no_grammar } from "./grammars/grammar"
 
 function generateDigits(): Array<number> {
     let digits: Array<number> = [];
@@ -16,29 +10,6 @@ function generateDigits(): Array<number> {
         digits.push(Math.floor(Math.random() * 10));
     }
     return digits;
-}
-
-const digitGrammar: { [index: string]: { digit?: string } } = {
-    "zero": { digit: '0' },
-    "one": { digit: '1' },
-    "two": { digit: '2' },
-    "three": { digit: '3' },
-    "four": { digit: '4' },
-    "for": { digit: '4' },
-    "five": { digit: '5' },
-    "six": { digit: '6' },
-    "seven": { digit: '7' },
-    "eight": { digit: '8' },
-    "nine": { digit: '9' },
-}
-
-const yes_no_grammar: { [index: string]: {} } = {
-    "yes": true,
-    "you bet": true,
-    "yeah": true,
-    "no": false,
-    "no way": false,
-    "nope": false,
 }
 
 function splitDigitString(inputStr: string): Array<string> {
@@ -55,8 +26,8 @@ function splitDigitString(inputStr: string): Array<string> {
     return splitStr
 }
 
-function isCorrectCount(inputStr: string): boolean {
-    return (splitDigitString(inputStr).length == 4);
+function getCount(inputStr: string): number {
+    return splitDigitString(inputStr).length;
 }
 
 function isDigits(inputStr: string): boolean {
@@ -70,7 +41,7 @@ function isDigits(inputStr: string): boolean {
     return true;
 }
 function isValidInput(inputStr: string): boolean {
-    return isCorrectCount(inputStr) && isDigits(inputStr);
+    return (getCount(inputStr) == 4) && isDigits(inputStr);
 }
 
 function convertToDigits(inputStr: string): Array<number> {
@@ -93,7 +64,15 @@ function allCorrect(soughtDigits: Array<number>, guessedDigits: string): boolean
     return true;
 }
 
-function getCatsAndKittens(context: SDSContext): string {
+function addToHistory(context: SDSContext, guess: string, catCount: number, kittenCount: number) {
+    context.guessHistory.push({
+        guess: guess,
+        catCount: catCount,
+        kittenCount: kittenCount
+    });
+}
+function addCatsAndKittensHistory(context: SDSContext) {
+    console.log("addCatsAndKittensHistory")
     let cats = 0;
     let kittens = 0;
     let soughtDigits = [...context.digits]
@@ -118,18 +97,42 @@ function getCatsAndKittens(context: SDSContext): string {
             }
         }
     }
-    const catStr = (cats == 1) ? "cat" : "cats";
-    const kittenStr = (kittens == 1) ? "kitten" : "kittens";
-    console.log(`${cats} ${catStr}, ${kittens} ${kittenStr}`);
-    context.guessHistory.push(context.digitsResponse.join("") + ` ${cats} ${catStr}, ${kittens} ${kittenStr}`);
-
-    return `${cats} ${catStr}, ${kittens} ${kittenStr}`
+    addToHistory(context, context.digitsResponse.join(""), cats, kittens);
 }
 
+function getCatsAndKittensMessage(context: SDSContext): string {
+    addCatsAndKittensHistory(context)
+    console.log("getCatsAndKittensMessage")
+    const idx = context.guessHistory.length - 1;
+    let cats = 0;
+    let kittens = 0;
+    if (idx >= 0) {
+        cats = context.guessHistory[idx].catCount;
+        kittens = context.guessHistory[idx].kittenCount;
+    }
+    console.log(`${context.guessHistory.length}`)
+    const catStr = (cats == 1) ? "cat" : "cats";
+    const kittenStr = (kittens == 1) ? "kitten" : "kittens";
+    return `${cats} ${catStr}, ${kittens} ${kittenStr}`;
+}
+
+function getWinMessage(context: SDSContext): string {
+    addCatsAndKittensHistory(context);
+    const guessCount = context.guessHistory.length
+    return `Meow meow meow meow! Purrfect! You got it in ${guessCount} tries!`;
+}
+
+
+const saveDigits: Action<SDSContext, SDSEvent> = assign((context: SDSContext) => {
+    return { digitsResponse: convertToDigits(context.recResult) }
+})
+
 export const dmMastermindMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
-    id: "mastermind",
     initial: 'catsnkittens',
-    entry: assign({ guessHistory: context => [] }),
+    entry: [
+        resetRepromptCount,
+        assign({ guessHistory: context => [] }),
+    ],
     states: {
         catsnkittens: {
             id: 'catsnkittens',
@@ -145,34 +148,64 @@ export const dmMastermindMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                     }
                 },
                 play: {
+                    id: 'play',
                     initial: 'prompt',
                     states: {
                         prompt: {
                             entry: say("Give me four digits!"),
                             on: {
                                 ENDSPEECH: 'ask'
-                            }
+                            },
+                            exit: startRepromptTimer
                         },
                         ask: {
-                            entry: listen()
+                            entry: listen(),
+                            exit: cancelRepromptTimer
+                        },
+                        reprompt: {
+                            ...reprompt("You can ask me for help if you need to.", '#play.ask'),
+                            onDone: '#done'
                         },
                         result: {
-                            entry: send((context) => ({
-                                type: "SPEAK",
-                                value: getCatsAndKittens(context)
-                            })),
+                            entry: [
+                                send((context) => ({
+                                    type: "SPEAK",
+                                    value: getCatsAndKittensMessage(context)
+                                }))],
                             on: {
                                 ENDSPEECH: 'prompt'
+                            }
+                        },
+                        tooMany: {
+                            entry: [
+                                (context) => (addToHistory(context, context.digitsResponse.join(""), 0, 0)),
+                                say("That's too many digits"),
+                            ],
+                            on: {
+                                ENDSPEECH: 'prompt',
+                            }
+                        },
+                        tooFew: {
+                            entry: [
+                                (context) => (addToHistory(context, context.digitsResponse.join(""), 0, 0)),
+                                say("That's too few digits"),
+                            ],
+                            on: {
+                                ENDSPEECH: 'prompt',
                             }
                         },
                         invalid: {
-                            entry: say("That's not four digits"),
+                            entry: [
+                                (context) => (addToHistory(context, "<not digits>", 0, 0)),
+                                say("That's not four digits"),
+                            ],
                             on: {
-                                ENDSPEECH: 'prompt'
+                                ENDSPEECH: 'prompt',
                             }
                         }
                     },
                     on: {
+                        TIMER: '.reprompt.repromptCounter',
                         RECOGNISED: [{
                             cond: (context) => context.recResult === 'help',
                             target: '#common.help'
@@ -183,15 +216,23 @@ export const dmMastermindMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                         },
                         {
                             cond: (context) => allCorrect(context.digits, context.recResult),
+                            actions: saveDigits,
                             target: 'finished'
                         },
                         {
                             cond: (context) => isValidInput(context.recResult),
-                            actions:
-                                assign((context) => {
-                                    return { digitsResponse: convertToDigits(context.recResult) }
-                                }),
+                            actions: saveDigits,
                             target: '.result'
+                        },
+                        {
+                            cond: (context) => getCount(context.recResult) > 4,
+                            actions: saveDigits,
+                            target: '.tooMany'
+                        },
+                        {
+                            cond: (context) => getCount(context.recResult) < 4 && getCount(context.recResult) > 0,
+                            actions: saveDigits,
+                            target: '.tooFew'
                         },
                         {
                             target: '.invalid'
@@ -200,7 +241,12 @@ export const dmMastermindMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                     }
                 },
                 finished: {
-                    entry: say("Meow meow meow meow! Congratulations, you won!"),
+                    entry: [
+                        send((context) => ({
+                            type: "SPEAK",
+                            value: getWinMessage(context)
+                        })),
+                    ],
                     on: {
                         ENDSPEECH: '#playprompt'
                     }
@@ -219,13 +265,20 @@ export const dmMastermindMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                     entry: say("Do you want to play again?"),
                     on: {
                         ENDSPEECH: 'ask'
-                    }
+                    },
+                    exit: startRepromptTimer
                 },
                 ask: {
-                    entry: listen()
+                    entry: listen(),
+                    exit: cancelRepromptTimer
+                },
+                reprompt: {
+                    ...reprompt("Play again?", '#playprompt.ask'),
+                    onDone: '#done'
                 },
             },
             on: {
+                TIMER: '.reprompt.repromptCounter',
                 RECOGNISED: [{
                     cond: (context) => yes_no_grammar[context.recResult] === true,
                     actions: [
@@ -260,19 +313,27 @@ export const dmMastermindMachine: MachineConfig<SDSContext, any, SDSEvent> = ({
                     },
                 },
                 quit: {
+                    id: 'quit',
                     initial: 'prompt',
                     states: {
                         prompt: {
-                            entry: say("Are you sure you want to quit?"),
+                            entry: say("Are you sure you want to exit the game?"),
                             on: {
                                 ENDSPEECH: 'ask'
-                            }
+                            },
+                            exit: startRepromptTimer
                         },
                         ask: {
-                            entry: listen()
+                            entry: listen(),
+                            exit: cancelRepromptTimer
+                        },
+                        reprompt: {
+                            ...reprompt("Do you want to exit the game?", '#quit.ask'),
+                            onDone: '#done'
                         },
                     },
                     on: {
+                        TIMER: '.reprompt.repromptCounter',
                         RECOGNISED: [{
                             cond: (context) => yes_no_grammar[context.recResult] === true,
                             target: '#done'

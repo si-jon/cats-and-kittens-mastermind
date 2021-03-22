@@ -1,0 +1,6 @@
+Cats and kittens is a version of the game Mastermind
+
+Your task is to figure out my four digit code with help of my hints.
+You guess which four digits, 0-9, are in my code, and I'll give you a hint of each guess; cats and kittens!
+A cat indicates one of the numbers in your guess are in the correct spot.
+A kitten indicates one of the numbers in your guess are included in the code, but in the wrong spot.
