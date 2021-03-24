@@ -1,4 +1,4 @@
-* Cats & Kittens
+# Cats & Kittens
 
 Deployd at: https://si-jon.github.io/cats-and-kittens-mastermind/
 
