@@ -8,3 +8,6 @@ To run:
   npm install
   npm start
 #+end_src
+
+Slides about the project 
+[Additonal slides about the project](dialogue-systems-project.pdf)
