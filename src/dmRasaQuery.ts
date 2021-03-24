@@ -5,7 +5,7 @@ const rasaurl = 'https://cnk-mastermind-rasa-server.herokuapp.com/model/parse'
 const nluRequest = (text: string) =>
     fetch(new Request(proxyurl + rasaurl, {
         method: 'POST',
-        headers: { 'Origin': 'https://github.com/si-jon/cats-and-kittens-mastermind' }, // only required with proxy
+        headers: { 'Origin': 'https://github.com/si-jon/cats-and-kittens-mastermind' },
         body: `{"text": "${text}"}`
     })).then(data => data.json());
 
